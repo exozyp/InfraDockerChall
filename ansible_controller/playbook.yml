@@ -1,7 +1,7 @@
----
-- name: Install and configure Nginx on SSH Server
+- name: Déployer et configurer le serveur
   hosts: all
-  become: true
+  become: yes
+  vars_files:
+    - vault.yml
   roles:
     - nginx
-
