@@ -1,59 +1,80 @@
 # Docker-Ansible-GitLab: Challenge Infra
 
-## 🔧 Objectif
+## Objectif
 
-Ce projet met en place un environnement Dockerisé avec :
-- Un conteneur Debian 12 jouant le rôle de serveur SSH.
-- Un conteneur AlmaLinux 9 avec Ansible (à venir).
-- Déploiement d’un serveur Nginx via Ansible.
-- Bonus : Intégration CI/CD GitLab.
+Mettre en place un environnement Dockerisé pour automatiser la configuration système avec Ansible.  
+Ce projet inclut :
 
-## 📦 Étape 1 : SSH Server (Debian 12)
+- ✅ Un serveur SSH sécurisé sous **Debian 12**  
+- ✅ Un contrôleur Ansible basé sur **AlmaLinux 9**  
+- ✅ Un déploiement automatisé de **Nginx**  
+- ✅ Une sécurisation rigoureuse de l’ensemble
 
-### 🔹 Objectif
-Créer un conteneur SSH avec authentification par clé, sécurité renforcée, et configuration propre.
+---
 
-### 🔹 Mise en œuvre
+## Étape 1 : Serveur SSH (Debian 12)
 
-- **Base image :** `debian:12`
-- **Serveur SSH installé** via `apt`
-- **Utilisateur non-root** : `dockeruser`
-- **Connexion SSH par clé** uniquement
-- **Port exposé :** 2222 (externe) → 22 (interne)
+### 🔹 But
 
-## 🔐 Réflexion Sécurité
+Créer un conteneur SSH sécurisé, accessible uniquement par clé publique, avec un utilisateur non-root aux droits limités.
 
-- ✅ Utilisation d’un **utilisateur non-root** (`dockeruser`) pour toutes les connexions.
-- ✅ Connexion SSH uniquement via **clé publique** (pas de mot de passe autorisé).
-- ✅ Permissions strictes sur `.ssh` : `700` sur le dossier, `600` sur `authorized_keys`.
-- ✅ Accès **root interdit** en SSH (`PermitRootLogin no`).
-- ✅ Désactivation de l’**authentification par mot de passe** (`PasswordAuthentication no`).
+### 🔹 Détails techniques
 
-### 🔹 Commandes utilisées
-```bash
-docker-compose up --build -d
-ssh dockeruser@localhost -p 2222
+- **Image :** `debian:12`  
+- **Paquets :** `openssh-server`, `sudo`, `curl`, `python3`  
+- **Utilisateur :** `dockeruser`  
+- **Authentification :** uniquement par **clé publique**  
+- **Port exposé :** `6205`  
 
+### Sécurité
 
-## ⚙️ Étape 2 : Ansible Controller (AlmaLinux 9)
+- SSH **par clé uniquement**, mot de passe désactivé  
+- Accès **root interdit** (`PermitRootLogin no`)  
+- Paramètres SSH durcis :  
+  - `PasswordAuthentication no`  
+  - `PubkeyAuthentication yes`  
+- Permissions `.ssh` strictes :  
+  - `700` pour le dossier  
+  - `600` pour `authorized_keys`  
+- Accès `sudo` configuré au strict nécessaire  
 
-### 🔹 Objectif
+---
 
-Créer un conteneur Docker basé sur AlmaLinux 9, avec Ansible installé, capable de se connecter au serveur SSH et d'exécuter des commandes à distance.
+## Étape 2 : Contrôleur Ansible (AlmaLinux 9)
 
-### 🔹 Mise en œuvre
+### 🔹 But
 
-- **Base image :** `almalinux:9`
-- Installation de **Python3**, **pip** et **Ansible** via `pip`
-- Création d’un utilisateur `ansibleuser` avec les droits `sudo`
-- Configuration Ansible : 
-  - Désactivation de la vérification de la clé SSH (`host_key_checking = False`)
-  - Spécification de l'inventaire et de la clé privée
-- Connexion testée avec `ansible all -m ping`
+Déployer un conteneur Ansible capable d’exécuter des playbooks sur le serveur SSH de manière sécurisée.
 
-### 🔹 Commandes
+### 🔹 Détails techniques
 
-```bash
-docker-compose up --build -d
-docker exec -it ansible_controller bash
-ansible all -m ping
+- **Image :** `almalinux:9`  
+- **Paquets :** `python3`, `pip`, `openssh-clients`, `ansible`  
+- **Utilisateur :** `ansibleuser` (non-root) avec `sudo` restreint  
+- **Configuration :**  
+  - Fichier `ansible.cfg`  
+  - Fichier d’inventaire `inventory`  
+  - Clé SSH privée `id_rsa_ansible` (permissions `600`)  
+  - Structure des rôles dans `roles/`
+
+---
+
+## Étape 3 : Déploiement sécurisé de Nginx via Ansible Vault
+
+### 🔹 But
+
+Automatiser l'installation de **Nginx** sur le serveur SSH tout en garantissant la confidentialité des données sensibles à l’aide d’**Ansible Vault**.
+
+### Privilèges et sécurité
+
+- Utilisation d’un **utilisateur non-root** avec **droits sudo limités**  
+- **Mot de passe sudo chiffré** avec Ansible Vault  
+- Déploiement entièrement automatisé via **rôles Ansible**  
+- Fichiers sensibles protégés avec des **permissions strictes** (`600`)  
+- Connexion SSH uniquement par **authentification par clé publique**  
+- **Port SSH personnalisé** pour limiter l’exposition  
+- **Accès root désactivé** en SSH  
+- Ansible est configuré pour **ne jamais afficher les mots de passe**, même chiffrés  
+
+---
+
